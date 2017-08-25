@@ -2,9 +2,11 @@ import csv, scrapy, sys
 from scrapy.http import Request
 
 scanned_users = []
+review_count = 0
+chunk = 0
 users = ['17438949-melissa-dog-lover-martin']
 
-with open('/Volumes/storage/goodreads-book-reviews.csv', 'a') as f:
+with open('/Volumes/storage/reviews-chunk' + str(chunk) + '.csv', 'a') as f:
   writer = csv.writer(f, lineterminator='\n')
   writer.writerows([["title", "rating", "user"]])
 
@@ -28,7 +30,7 @@ class GoodreadsSpider(scrapy.Spider):
                callback=self.parse_friends)
 
     def parse_review_page(self, response):
-        global scanned_users, users, writer
+        global scanned_users, users, writer, chunk, review_count
 
         thisUser = users[0]
         nextUser = users[1]
@@ -42,11 +44,13 @@ class GoodreadsSpider(scrapy.Spider):
             rating = review.css(RATING_SELECTOR).extract_first()
 
             if rating is not None:
-                with open('/Volumes/storage/goodreads-book-reviews.csv', 'a') as f:
+                with open('/Volumes/storage/reviews-chunk' + str(chunk) + '.csv', 'a') as f:
                     writer = csv.writer(f, lineterminator='\n')
                     writer.writerow([title[0], rating, thisUser])
+                    review_count += 1
+                    chunk = review_count//25000
 
-        print('\n\n', len(users), " users in line to be scraped ", 'previous: ', thisUser, ' next: ', nextUser)
+        print('\n\n', len(users), " users in line to be scraped \n", 'number of reviews scraped: ',  review_count, 'on chunk ', chunk)
 
         nextPage = response.css('a.next_page::attr(href)').extract_first()
 
